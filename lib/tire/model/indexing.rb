@@ -46,6 +46,7 @@ module Tire
         #     end
         #
         def mapping(*args)
+          @root_class = Kernel.const_get(document_type.camelize) rescue nil
           @mapping ||= {}
           if block_given?
             @mapping_options = args.pop
@@ -76,7 +77,10 @@ module Tire
         # for more information.
         #
         def indexes(name, options = {}, &block)
+          require 'pry'
           if block_given?
+            @association_class = options[:class] if options[:class]
+            options.delete(:class)
             mapping[name] ||= { :type => 'object', :properties => {} }.update(options)
             @_nested_mapping = name
             nested = yield
@@ -86,6 +90,20 @@ module Tire
             options[:type] ||= 'string'
             if @_nested_mapping
               mapping[@_nested_mapping][:properties][name] = options
+              if @association_class
+                attribute_name = @_nested_mapping
+                root_class = @root_class
+                @association_class.set_callback :save, :after do
+                  unless self.respond_to? "refresh_#{@root_class.to_s.underscore}_indexes".to_sym
+                    self.class.send(:define_method, "refresh_#{root_class.to_s.underscore}_indexes".to_sym) do
+                      documents = self.class.where(attribute_name.to_sym => self)
+                      root_class.index.bulk_store documents
+                    end
+                  end
+                  self.send("refresh_#{root_class.to_s.underscore}_indexes".to_sym)
+                end
+
+              end
             else
               mapping[name] = options
             end
