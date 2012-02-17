@@ -96,6 +96,7 @@ module Tire
       should "do something" do
         @associated_model.first_name = 'Jim'
         @associated_model.save
+        sleep(2)
         m = ActiveModelArticleWithAssociation.search('*').first
         assert_equal @associated_model.first_name, m.author.first_name
       end
