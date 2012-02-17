@@ -38,6 +38,7 @@ Gem::Specification.new do |s|
   s.add_development_dependency "yajl-ruby",   "~> 0.8.0"
   s.add_development_dependency "shoulda"
   s.add_development_dependency "mocha"
+  s.add_development_dependency "pry"
   s.add_development_dependency "activerecord", "~> 3"
   s.add_development_dependency "mongoid",      "~> 2.2.1"
   s.add_development_dependency "sqlite3"

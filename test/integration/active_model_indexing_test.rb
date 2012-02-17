@@ -1,4 +1,6 @@
 require 'test_helper'
+require 'active_record'
+require 'pry'
 
 module Tire
 
@@ -17,22 +19,30 @@ module Tire
       end
     end
 
-    class ::AssociatedModel < ActiveModelArticleWithCallbacks
+    class ::AssociatedModel < ActiveRecord::Base
+      include Tire::Model::Search
+      include Tire::Model::Callbacks
+
+      has_many :articles,    :class_name => "ActiveModelArticleWithAssociation",    :foreign_key => "article_id"
+
       mapping do
         indexes :first_name
         indexes :last_name
       end
-
-      def first_name=(first_name)
-        @attributes[:first_name] = first_name
-      end
+      #
+      #def first_name=(first_name)
+      #  @attributes[:first_name] = first_name
+      #end
     end
 
-    class ::ActiveModelArticleWithAssociation < ActiveModelArticleWithCallbacks
+    class ::ActiveModelArticleWithAssociation < ActiveRecord::Base
+      include Tire::Model::Search
+      include Tire::Model::Callbacks
+
       mapping do
         indexes :title
         indexes :content
-        indexes :author, :class => AssociatedModel do
+        indexes :associated_model, :class => AssociatedModel do
           indexes :first_name
         end
       end
@@ -41,8 +51,8 @@ module Tire
         {
           :title   => title,
           :content => content,
-          :author  => {
-            :first_name => author.first_name,
+          :associated_model  => {
+            :first_name => AssociatedModel.find(associated_model_id).first_name,
           }
         }.to_json
       end
@@ -80,17 +90,32 @@ module Tire
     context "ActiveModel serialization with association" do
 
       setup do
-        #AssociatedModel.any_instance.stubs(:where).returns([@model])
-        @associated_model = AssociatedModel.new :id => 1, :first_name => 'Jack', :last_name => 'Doe'
-        @model = ActiveModelArticleWithAssociation.new \
+        ActiveRecord::Base.establish_connection( :adapter => 'sqlite3', :database => ":memory:" )
+
+        ActiveRecord::Migration.verbose = false
+        ActiveRecord::Schema.define(:version => 1) do
+          create_table :associated_models do |t|
+            t.string   :first_name
+            t.string   :last_name
+          end
+          create_table :active_model_article_with_associations do |t|
+            t.string     :title
+            t.text       :content
+            t.integer    :associated_model_id
+          end
+        end
+
+        ActiveModelArticleWithAssociation.destroy_all
+        AssociatedModel.destroy_all
+
+        @associated_model = AssociatedModel.create :first_name => 'Jack', :last_name => 'Doe'
+        @model = ActiveModelArticleWithAssociation.create \
           :title => 'Sample Title',
           :content => 'Test article',
-          :author => @associated_model
-        @model.id = "1"
-        @associated_model.id = "1"
-        @associated_model.class.expects(:where).returns([@model]).at_least_once
-        @associated_model.save
-        @model.save
+          :associated_model_id => @associated_model.id
+        #@associated_model.class.expects(:where).at_least_once
+        #@associated_model.save
+        #@model.save
       end
 
       should "do something" do
@@ -98,7 +123,7 @@ module Tire
         @associated_model.save
         sleep(2)
         m = ActiveModelArticleWithAssociation.search('*').first
-        assert_equal @associated_model.first_name, m.author.first_name
+        assert_equal @associated_model.first_name, m.associated_model.first_name
       end
 
     end

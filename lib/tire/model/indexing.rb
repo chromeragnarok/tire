@@ -95,7 +95,8 @@ module Tire
                 @association_class.set_callback :save, :after do
                   unless self.respond_to? "refresh_#{@root_class.to_s.underscore}_indexes".to_sym
                     self.class.send(:define_method, "refresh_#{root_class.to_s.underscore}_indexes".to_sym) do
-                      documents = self.class.where(attribute_name.to_sym => self)
+                      documents = root_class.where("#{attribute_name}_id".to_sym => self.id)
+                      #binding.pry
                       root_class.index.bulk_store documents
                     end
                   end
