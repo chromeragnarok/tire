@@ -97,7 +97,7 @@ module Tire
                     self.class.send(:define_method, "refresh_#{root_class.to_s.underscore}_indexes".to_sym) do
                       documents = root_class.where("#{attribute_name}_id".to_sym => self.id)
                       #binding.pry
-                      root_class.index.bulk_store documents
+                      root_class.index.bulk_store documents if documents.any?
                     end
                   end
                   self.send("refresh_#{root_class.to_s.underscore}_indexes".to_sym)
