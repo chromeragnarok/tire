@@ -77,7 +77,6 @@ module Tire
         # for more information.
         #
         def indexes(name, options = {}, &block)
-          require 'pry'
           if block_given?
             @association_class = options[:class] if options[:class]
             options.delete(:class)
