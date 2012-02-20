@@ -171,6 +171,28 @@ module Tire
                 when Proc
                   hash[key] = instance.instance_eval(&options[:as])
               end
+              if options[:type] == 'object'
+                nested_hash = {}
+                association_class = Kernel.const_get(key.to_s.camelize)
+                root_class = instance.class
+
+                mapping[key][:properties].map do |nested_key, options|
+                  nested_hash[nested_key] = association_class.where("id" => instance.send("#{key.to_s}_id".to_sym)).first.send(nested_key)
+                end
+                hash[key] = nested_hash
+
+                unless association_class.respond_to? "refresh_#{root_class.to_s.underscore}_indexes".to_sym
+                  association_class.set_callback :save, :after do
+                    self.class.send(:define_method, "refresh_#{root_class.to_s.underscore}_indexes".to_sym) do
+                      documents = root_class.where("#{key}_id".to_sym => self.id)
+                      root_class.index.bulk_store documents if documents.any?
+                    end
+                    self.send("refresh_#{root_class.to_s.underscore}_indexes".to_sym)
+                  end
+                end
+
+                #binding.pry
+              end
             end
 
             hash.to_json

@@ -29,10 +29,6 @@ module Tire
         indexes :first_name
         indexes :last_name
       end
-      #
-      #def first_name=(first_name)
-      #  @attributes[:first_name] = first_name
-      #end
     end
 
     class ::ActiveModelArticleWithAssociation < ActiveRecord::Base
@@ -47,15 +43,15 @@ module Tire
         end
       end
 
-      def to_indexed_json
-        {
-          :title   => title,
-          :content => content,
-          :associated_model  => {
-            :first_name => AssociatedModel.find(associated_model_id).first_name,
-          }
-        }.to_json
-      end
+      #def to_indexed_json
+      #  {
+      #    :title   => title,
+      #    :content => content,
+      #    :associated_model  => {
+      #      :first_name => AssociatedModel.find(associated_model_id).first_name,
+      #    }
+      #  }.to_json
+      #end
     end
 
     def setup
@@ -113,12 +109,9 @@ module Tire
           :title => 'Sample Title',
           :content => 'Test article',
           :associated_model_id => @associated_model.id
-        #@associated_model.class.expects(:where).at_least_once
-        #@associated_model.save
-        #@model.save
       end
 
-      should "do something" do
+      should "update the index if associated model is updated" do
         @associated_model.first_name = 'Jim'
         @associated_model.save
         sleep(2)

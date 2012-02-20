@@ -89,21 +89,21 @@ module Tire
             options[:type] ||= 'string'
             if @_nested_mapping
               mapping[@_nested_mapping][:properties][name] = options
-              if @association_class
-                attribute_name = @_nested_mapping
-                root_class = @root_class
-                @association_class.set_callback :save, :after do
-                  unless self.respond_to? "refresh_#{@root_class.to_s.underscore}_indexes".to_sym
-                    self.class.send(:define_method, "refresh_#{root_class.to_s.underscore}_indexes".to_sym) do
-                      documents = root_class.where("#{attribute_name}_id".to_sym => self.id)
-                      #binding.pry
-                      root_class.index.bulk_store documents if documents.any?
-                    end
-                  end
-                  self.send("refresh_#{root_class.to_s.underscore}_indexes".to_sym)
-                end
-
-              end
+              #if @association_class
+              #  attribute_name = @_nested_mapping
+              #  root_class = @root_class
+              #  @association_class.set_callback :save, :after do
+              #    unless self.respond_to? "refresh_#{root_class.to_s.underscore}_indexes".to_sym
+              #      self.class.send(:define_method, "refresh_#{root_class.to_s.underscore}_indexes".to_sym) do
+              #        documents = root_class.where("#{attribute_name}_id".to_sym => self.id)
+              #        #binding.pry
+              #        root_class.index.bulk_store documents if documents.any?
+              #      end
+              #    end
+              #    self.send("refresh_#{root_class.to_s.underscore}_indexes".to_sym)
+              #  end
+              #
+              #end
             else
               mapping[name] = options
             end
