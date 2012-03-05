@@ -177,7 +177,7 @@ module Tire
                 root_class = instance.class
 
                 mapping[key][:properties].map do |nested_key, options|
-                  nested_hash[nested_key] = association_class.where("id" => instance.send("#{key.to_s}_id".to_sym)).first.send(nested_key)
+                  nested_hash[nested_key] = association_class.where("id" => instance.send("#{key.to_s}_id".to_sym)).first.send(nested_key) rescue ""
                 end
                 hash[key] = nested_hash
 
