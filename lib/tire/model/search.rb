@@ -181,15 +181,15 @@ module Tire
                 end
                 hash[key] = nested_hash
 
-                unless association_class.respond_to? "refresh_#{root_class.to_s.underscore}_indexes".to_sym
-                  association_class.set_callback :save, :after do
-                    self.class.send(:define_method, "refresh_#{root_class.to_s.underscore}_indexes".to_sym) do
-                      documents = root_class.where("#{key}_id".to_sym => self.id)
-                      root_class.index.bulk_store documents if documents.any?
-                    end
-                    self.send("refresh_#{root_class.to_s.underscore}_indexes".to_sym)
-                  end
-                end
+                #unless association_class.respond_to? "refresh_#{root_class.to_s.underscore}_indexes".to_sym
+                #  association_class.set_callback :save, :after do
+                #    self.class.send(:define_method, "refresh_#{root_class.to_s.underscore}_indexes".to_sym) do
+                #      documents = root_class.where("#{key}_id".to_sym => self.id)
+                #      root_class.index.bulk_store documents if documents.any?
+                #    end
+                #    self.send("refresh_#{root_class.to_s.underscore}_indexes".to_sym)
+                #  end
+                #end
 
                 #binding.pry
               end
