@@ -43,15 +43,15 @@ module Tire
         end
       end
 
-      #def to_indexed_json
-      #  {
-      #    :title   => title,
-      #    :content => content,
-      #    :associated_model  => {
-      #      :first_name => AssociatedModel.find(associated_model_id).first_name,
-      #    }
-      #  }.to_json
-      #end
+      def to_indexed_json
+        {
+          :title   => title,
+          :content => content,
+          :associated_model  => {
+            :first_name => AssociatedModel.find(associated_model_id).first_name,
+          }
+        }.to_json
+      end
     end
 
     def setup
@@ -99,6 +99,12 @@ module Tire
             t.text       :content
             t.integer    :associated_model_id
           end
+
+          Tire.configure {
+            nested_attributes do
+              nest :associated_model => :active_model_article_with_association
+            end
+          }
         end
 
         ActiveModelArticleWithAssociation.destroy_all
