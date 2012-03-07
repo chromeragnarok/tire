@@ -99,12 +99,6 @@ module Tire
             t.text       :content
             t.integer    :associated_model_id
           end
-
-          Tire.configure {
-            nested_attributes do
-              nest :associated_model => :active_model_article_with_association
-            end
-          }
         end
 
         ActiveModelArticleWithAssociation.destroy_all
@@ -117,14 +111,56 @@ module Tire
           :associated_model_id => @associated_model.id
       end
 
-      should "update the index if associated model is updated" do
-        @associated_model.first_name = 'Jim'
-        @associated_model.save
-        sleep(2)
-        m = ActiveModelArticleWithAssociation.search('*').first
-        assert_equal @associated_model.first_name, m.associated_model.first_name
+      context 'without delayed job' do
+        setup do
+          Tire.configure {
+            nested_attributes do
+              nest :associated_model => :active_model_article_with_association
+            end
+          }
+        end
+
+        should "update the index if associated model is updated" do
+          @associated_model.first_name = 'Jim'
+          @associated_model.save
+          sleep(2)
+          m = ActiveModelArticleWithAssociation.search('*').first
+          assert_equal @associated_model.first_name, m.associated_model.first_name
+        end
       end
 
+      context 'with delayed job' do
+        setup do
+          module Tire::Job::ReindexJob::Delayed
+            class Job
+              def self.enqueue(*args)
+                args.pop.perform
+              end
+            end
+          end
+
+          Tire.configure {
+            nested_attributes :delayed_job => true do
+              nest :associated_model => :active_model_article_with_association
+            end
+          }
+        end
+
+        #should "call the queue method" do
+        #  mock_class = mock(:class)
+        #  mock_class.responds_like(Class)
+        #  mock_class.expects(:queue).once
+        #  Tire::Job::ReindexJob = mock_class
+        #end
+
+        should "update the index if associated model is updated" do
+          @associated_model.first_name = 'Jim'
+          @associated_model.save
+          sleep(2)
+          m = ActiveModelArticleWithAssociation.search('*').first
+          assert_equal @associated_model.first_name, m.associated_model.first_name
+        end
+      end
     end
 
   end
