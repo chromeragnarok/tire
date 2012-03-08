@@ -160,13 +160,6 @@ module Tire
           }
         end
 
-        #should "call the queue method" do
-        #  mock_class = mock(:class)
-        #  mock_class.responds_like(Class)
-        #  mock_class.expects(:queue).once
-        #  Tire::Job::ReindexJob = mock_class
-        #end
-
         should "update the index if associated model is updated" do
           @associated_model.first_name = 'Jim'
           @associated_model.save
@@ -177,6 +170,14 @@ module Tire
           sleep(2)
           m = ActiveModelArticleWithAssociation.search('*').first
           assert_equal @associated_model.first_name, m.associated_model.first_name
+        end
+
+        should "not update the index if associated model is updated if no delayed jobs server is running" do
+          @associated_model.first_name = 'Jim'
+          @associated_model.save
+          sleep(2)
+          m = ActiveModelArticleWithAssociation.search('*').first
+          assert_equal 'Jack', m.associated_model.first_name
         end
       end
     end
