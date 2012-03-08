@@ -149,17 +149,18 @@ module Tire
 
             logger 'test/elasticsearch.log', :level => 'debug'
           }
+
         end
 
         should "update the index if associated model is updated" do
           @associated_model.first_name = 'Jim'
           @associated_model.save
-          binding.pry
+          sleep(2)
+          Delayed::Job.all.count.should eql(1)
           Delayed::Job.all.each do |job|
             job.payload_object.perform
             job.destroy
           end
-          sleep(2)
           m = ActiveModelArticleWithAssociation.search('*').first
           assert_equal @associated_model.first_name, m.associated_model.first_name
         end
@@ -170,6 +171,12 @@ module Tire
           sleep(2)
           m = ActiveModelArticleWithAssociation.search('*').first
           assert_equal 'Jack', m.associated_model.first_name
+        end
+
+        should "not reindex if none of the indexed attributes gets updated" do
+          @associated_model.last_name = 'Robinson'
+          @associated_model.save
+          Delayed::Job.count.should eql(0)
         end
       end
     end
