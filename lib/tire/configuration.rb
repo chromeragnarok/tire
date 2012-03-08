@@ -27,7 +27,7 @@ module Tire
 
     def self.nested_attributes(*args)
       options = args.pop
-      if(options && options[:delayed_job])
+      if(options && options[:delayed_job] && defined?(Delayed::Job))
         @delayed_job = true
       else
         @delayed_job = false
@@ -37,7 +37,9 @@ module Tire
       end
     end
 
-    def self.nest(classes_hash)
+    def self.nest(*args)
+      classes_hash = args.pop
+
       associated_class = Kernel.const_get(classes_hash.keys.first.to_s.camelcase)
       root_classes = [classes_hash.values.first.to_s.camelcase]
       delayed_job = @delayed_job
@@ -47,8 +49,16 @@ module Tire
       #else
       #  root_classes = hash.values.first
       #end
+
       root_classes.each do |root_class_sym|
         root_class = Kernel.const_get(root_class_sym.to_s.camelcase)
+        change_attributes = []
+        root_class.tire.mapping.each do |key, options|
+          if options[:type] == 'object' && key == associated_class.to_s.underscore
+            change_attributes << options[:properties].keys
+          end
+        end
+
         associated_class.set_callback :save, :after do
           unless associated_class.respond_to? "refresh_#{root_class.to_s.underscore}_indexes".to_sym
             if delayed_job
@@ -64,9 +74,8 @@ module Tire
           self.send("refresh_#{root_class.to_s.underscore}_indexes".to_sym)
         end
       end
-
-
     end
+
   end
 
 end

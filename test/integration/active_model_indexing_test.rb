@@ -43,16 +43,6 @@ module Tire
           indexes :first_name
         end
       end
-
-      def to_indexed_json
-        {
-          :title   => title,
-          :content => content,
-          :associated_model  => {
-            :first_name => AssociatedModel.find(associated_model_id).first_name,
-          }
-        }.to_json
-      end
     end
 
     def setup
@@ -125,6 +115,7 @@ module Tire
         AssociatedModel.destroy_all
 
         @associated_model = AssociatedModel.create :first_name => 'Jack', :last_name => 'Doe'
+        binding.pry
         @model = ActiveModelArticleWithAssociation.create \
           :title => 'Sample Title',
           :content => 'Test article',
@@ -163,6 +154,7 @@ module Tire
         should "update the index if associated model is updated" do
           @associated_model.first_name = 'Jim'
           @associated_model.save
+          binding.pry
           Delayed::Job.all.each do |job|
             job.payload_object.perform
             job.destroy
