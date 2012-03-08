@@ -1,5 +1,6 @@
 require 'test_helper'
 require 'active_record'
+require 'delayed_job'
 require 'pry'
 
 module Tire
@@ -57,11 +58,15 @@ module Tire
     def setup
       super
       ActiveModelArticleWithCustomAsSerialization.index.delete
+      ActiveModelArticleWithAssociation.index.delete
+      AssociatedModel.index.delete
     end
 
     def teardown
       super
       ActiveModelArticleWithCustomAsSerialization.index.delete
+      ActiveModelArticleWithAssociation.index.delete
+      AssociatedModel.index.delete
     end
 
     context "ActiveModel serialization" do
@@ -99,7 +104,22 @@ module Tire
             t.text       :content
             t.integer    :associated_model_id
           end
+          create_table :delayed_jobs do |t|
+            t.integer  "priority",   :default => 0
+            t.integer  "attempts",   :default => 0
+            t.text     "handler"
+            t.text     "last_error"
+            t.datetime "run_at"
+            t.datetime "locked_at"
+            t.datetime "failed_at"
+            t.string   "locked_by"
+            t.datetime "created_at"
+            t.datetime "updated_at"
+            t.string   "queue"
+          end
         end
+
+        Delayed::Worker.backend = :active_record
 
         ActiveModelArticleWithAssociation.destroy_all
         AssociatedModel.destroy_all
@@ -131,18 +151,12 @@ module Tire
 
       context 'with delayed job' do
         setup do
-          module Tire::Job::ReindexJob::Delayed
-            class Job
-              def self.enqueue(*args)
-                args.pop.perform
-              end
-            end
-          end
-
           Tire.configure {
             nested_attributes :delayed_job => true do
               nest :associated_model => :active_model_article_with_association
             end
+
+            logger 'test/elasticsearch.log', :level => 'debug'
           }
         end
 
@@ -156,6 +170,10 @@ module Tire
         should "update the index if associated model is updated" do
           @associated_model.first_name = 'Jim'
           @associated_model.save
+          Delayed::Job.all.each do |job|
+            job.payload_object.perform
+            job.destroy
+          end
           sleep(2)
           m = ActiveModelArticleWithAssociation.search('*').first
           assert_equal @associated_model.first_name, m.associated_model.first_name

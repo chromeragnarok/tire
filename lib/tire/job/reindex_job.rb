@@ -1,38 +1,22 @@
 module Tire
   module Job
     class ReindexJob
-      def initialize(hash)
-        @classes = hash
+      require 'delayed_job'
+
+      def initialize(root_class, associated_class, instance_id)
+        @associated_class = associated_class
+        @root_class = root_class
+        @instance_id = instance_id
       end
 
       def perform
-        associated_class = Kernel.const_get(@classes.keys.first.to_s.camelcase)
-        #unless hash.values.first.respond_to?(:size)
-        #  root_classes = [hash.values.first.to_s.camelcase]
-        #else
-        #  root_classes = hash.values.first
-        #end
-
-        root_classes = [@classes.values.first.to_s.camelcase]
-
-        root_classes.each do |root_class_sym|
-          root_class = Kernel.const_get(root_class_sym.to_s.camelcase)
-          unless associated_class.respond_to? "refresh_#{root_class.to_s.underscore}_indexes".to_sym
-            associated_class.set_callback :save, :after do
-              self.class.send(:define_method, "refresh_#{root_class.to_s.underscore}_indexes".to_sym) do
-                documents = root_class.where("#{associated_class.to_s.underscore}_id".to_sym => self.id)
-                root_class.index.bulk_store documents if documents.any?
-              end
-              self.send("refresh_#{root_class.to_s.underscore}_indexes".to_sym)
-            end
-          end
-        end
+        documents = @root_class.where("#{@associated_class.to_s.underscore}_id".to_sym => @instance_id)
+        @root_class.index.bulk_store documents if documents.any?
       end
 
-      def self.queue(hash)
-        Delayed::Job.enqueue(ReindexJob.new(hash))
+      def self.queue(root_class, associated_class, instance_id)
+        Delayed::Job.enqueue(ReindexJob.new(root_class, associated_class, instance_id))
       end
-
     end
   end
 end

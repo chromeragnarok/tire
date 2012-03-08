@@ -37,12 +37,34 @@ module Tire
       end
     end
 
-    def self.nest(hash)
-      if @delayed_job
-        Tire::Job::ReindexJob.queue(hash)
-      else
-        Tire::Job::ReindexJob.new(hash).perform
+    def self.nest(classes_hash)
+      associated_class = Kernel.const_get(classes_hash.keys.first.to_s.camelcase)
+      root_classes = [classes_hash.values.first.to_s.camelcase]
+
+      #unless hash.values.first.respond_to?(:size)
+      #  root_classes = [hash.values.first.to_s.camelcase]
+      #else
+      #  root_classes = hash.values.first
+      #end
+      root_classes.each do |root_class_sym|
+        root_class = Kernel.const_get(root_class_sym.to_s.camelcase)
+        associated_class.set_callback :save, :after do
+          unless associated_class.respond_to? "refresh_#{root_class.to_s.underscore}_indexes".to_sym
+            if @delayed_job
+              self.class.send(:define_method, "refresh_#{root_class.to_s.underscore}_indexes".to_sym) do
+                Tire::Job::ReindexJob.queue(root_class, associated_class, self.id)
+              end
+            else
+              self.class.send(:define_method, "refresh_#{root_class.to_s.underscore}_indexes".to_sym) do
+                Tire::Job::ReindexJob.new(root_class, associated_class, self.id).perform
+              end
+            end
+          end
+          self.send("refresh_#{root_class.to_s.underscore}_indexes".to_sym)
+        end
       end
+
+
     end
   end
 
