@@ -59,7 +59,7 @@ module Tire
           end
         end
 
-        associated_class.set_callback :save, :after do
+        associated_class.set_callback :save, :around do
           unless associated_class.respond_to? "refresh_#{root_class.to_s.underscore}_indexes".to_sym
             if delayed_job
               self.class.send(:define_method, "refresh_#{root_class.to_s.underscore}_indexes".to_sym) do
@@ -71,6 +71,7 @@ module Tire
               end
             end
           end
+          yield if block_given?
           self.send("refresh_#{root_class.to_s.underscore}_indexes".to_sym)
         end
       end
