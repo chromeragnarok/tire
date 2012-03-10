@@ -49,7 +49,6 @@ module Tire
       #else
       #  root_classes = hash.values.first
       #end
-
       root_classes.each do |root_class_sym|
         root_class = Kernel.const_get(root_class_sym.to_s.camelcase)
         change_attributes = []
@@ -58,25 +57,19 @@ module Tire
             change_attributes << options[:properties].keys
           end
         end
-
-        associated_class.set_callback :save, :around do
-          unless associated_class.respond_to? "refresh_#{root_class.to_s.underscore}_indexes".to_sym
-            if delayed_job
-              self.class.send(:define_method, "refresh_#{root_class.to_s.underscore}_indexes".to_sym) do
-                Tire::Job::ReindexJob.queue(root_class, associated_class, self.id)
-              end
-            else
-              self.class.send(:define_method, "refresh_#{root_class.to_s.underscore}_indexes".to_sym) do
-                Tire::Job::ReindexJob.new(root_class, associated_class, self.id).perform
-              end
+        unless associated_class.respond_to? "refresh_#{root_class.to_s.underscore}_indexes".to_sym
+          if delayed_job
+            associated_class.send(:define_method, "refresh_#{root_class.to_s.underscore}_indexes".to_sym) do
+              Tire::Job::ReindexJob.queue(root_class, associated_class, self.id)
+            end
+          else
+            associated_class.send(:define_method, "refresh_#{root_class.to_s.underscore}_indexes".to_sym) do
+              Tire::Job::ReindexJob.new(root_class, associated_class, self.id).perform
             end
           end
-          yield if block_given?
-          self.send("refresh_#{root_class.to_s.underscore}_indexes".to_sym)
+          associated_class.set_callback :update, :after, "refresh_#{root_class.to_s.underscore}_indexes".to_sym
         end
       end
     end
-
   end
-
 end

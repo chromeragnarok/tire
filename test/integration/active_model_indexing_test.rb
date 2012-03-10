@@ -111,14 +111,22 @@ module Tire
 
         Delayed::Worker.backend = :active_record
 
-        ActiveModelArticleWithAssociation.destroy_all
-        AssociatedModel.destroy_all
-
         @associated_model = AssociatedModel.create :first_name => 'Jack', :last_name => 'Doe'
         @model = ActiveModelArticleWithAssociation.create \
           :title => 'Sample Title',
           :content => 'Test article',
           :associated_model_id => @associated_model.id
+      end
+
+      teardown do
+        Delayed::Job.all.each do |job|
+          job.destroy
+        end
+
+        ActiveModelArticleWithAssociation.destroy_all
+        AssociatedModel.destroy_all
+
+        AssociatedModel.after_update.clear
       end
 
       context 'without delayed job' do
@@ -131,6 +139,7 @@ module Tire
         end
 
         should "update the index if associated model is updated" do
+          puts AssociatedModel._update_callbacks.count
           @associated_model.first_name = 'Jim'
           @associated_model.save
           sleep(2)
@@ -151,20 +160,24 @@ module Tire
 
         end
 
-        should "update the index if associated model is updated" do
+        should "update the index if associated mod  el is updated" do
+          puts AssociatedModel._update_callbacks.count
+          assert_equal 0, Delayed::Job.count
           @associated_model.first_name = 'Jim'
           @associated_model.save
-          #Delayed::Job.all.count.should eql(1)
+          assert_equal 1, Delayed::Job.count
           Delayed::Job.all.each do |job|
             job.payload_object.perform
             job.destroy
           end
           sleep(2)
+          assert_equal 0, Delayed::Job.count
           m = ActiveModelArticleWithAssociation.search('*').first
           assert_equal @associated_model.first_name, m.associated_model.first_name
         end
 
         should "not update the index if associated model is updated if no delayed jobs server is running" do
+          puts AssociatedModel._update_callbacks.count
           @associated_model.first_name = 'Jim'
           @associated_model.save
           sleep(2)
@@ -180,5 +193,11 @@ module Tire
       end
     end
 
+  end
+
+  def get_reindex_jobs
+    Delayed::Job.all.map do |job|
+      job.payload_object if job.payload_object.class == Tire::Job::ReindexJob
+    end.compact
   end
 end
