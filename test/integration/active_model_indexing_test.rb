@@ -161,7 +161,6 @@ module Tire
         end
 
         should "update the index if associated mod  el is updated" do
-          puts AssociatedModel._update_callbacks.count
           assert_equal 0, Delayed::Job.count
           @associated_model.first_name = 'Jim'
           @associated_model.save
@@ -185,11 +184,11 @@ module Tire
           assert_equal 'Jack', m.associated_model.first_name
         end
 
-        #should "not reindex if none of the indexed attributes gets updated" do
-        #  @associated_model.last_name = 'Robinson'
-        #  @associated_model.save
-        #  Delayed::Job.count.should eql(0)
-        #end
+        should "not reindex if none of the indexed attributes gets updated" do
+          @associated_model.last_name = 'Robinson'
+          @associated_model.save
+          assert_equal 0, Delayed::Job.count
+        end
       end
     end
 

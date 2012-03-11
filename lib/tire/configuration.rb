@@ -53,15 +53,23 @@ module Tire
         root_class = Kernel.const_get(root_class_sym.to_s.camelcase)
         change_attributes = []
         root_class.tire.mapping.each do |key, options|
-          if options[:type] == 'object' && key == associated_class.to_s.underscore
-            change_attributes << options[:properties].keys
+          if options[:type] == 'object' && key == associated_class.to_s.underscore.to_sym
+            change_attributes = change_attributes + options[:properties].keys.map(&:to_s)
           end
         end
+
         unless associated_class.respond_to? "refresh_#{root_class.to_s.underscore}_indexes".to_sym
           if delayed_job
             associated_class.send(:define_method, "refresh_#{root_class.to_s.underscore}_indexes".to_sym) do |&block|
+              do_reindex = false
+              change_attributes.each do |attribute|
+                if self.send("#{attribute}_changed?".to_sym)
+                  do_reindex = true
+                  break
+                end
+              end
               block.call
-              Tire::Job::ReindexJob.queue(root_class, associated_class, self.id)
+              Tire::Job::ReindexJob.queue(root_class, associated_class, self.id) if do_reindex
             end
           else
             associated_class.send(:define_method, "refresh_#{root_class.to_s.underscore}_indexes".to_sym) do |&block|
