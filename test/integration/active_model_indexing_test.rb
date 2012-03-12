@@ -154,8 +154,6 @@ module Tire
             nested_attributes :delayed_job => true do
               nest :associated_model => :active_model_article_with_association
             end
-
-            logger 'test/elasticsearch.log', :level => 'debug'
           }
 
         end
