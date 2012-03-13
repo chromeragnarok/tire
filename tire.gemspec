@@ -31,7 +31,6 @@ Gem::Specification.new do |s|
   s.add_dependency "multi_json",  "~> 1.0"
   s.add_dependency "activemodel", "~> 3.0"
   s.add_dependency "hashr",       "~> 0.0.16"
-  #s.add_dependency "delayed_job", "~> 3.0"
 
 
   # = Development dependencies
@@ -45,7 +44,8 @@ Gem::Specification.new do |s|
   s.add_development_dependency "sqlite3"
   s.add_development_dependency "supermodel",   "~> 0.1.6"
   s.add_development_dependency "curb"
-  #s.add_development_dependency "delayed_job_active_record"
+  s.add_dependency "delayed_job", "~> 3.0"
+  s.add_development_dependency "delayed_job_active_record"
 
   # These gems are not needed for CI at <http://travis-ci.org/#!/karmi/tire>
   #

@@ -1,8 +1,6 @@
 module Tire
   module Job
     class ReindexJob
-      #require 'delayed_job'
-
       def initialize(root_class, associated_class, instance_id)
         @associated_class = associated_class.to_s
         @root_class = root_class.to_s
