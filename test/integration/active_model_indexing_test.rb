@@ -155,7 +155,6 @@ module Tire
               nest :associated_model => :active_model_article_with_association
             end
           }
-
         end
 
         should "update the index if associated mod  el is updated" do
