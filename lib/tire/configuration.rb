@@ -58,9 +58,9 @@ module Tire
           end
         end
 
-        unless associated_class.respond_to? "refresh_#{root_class.to_s.underscore}_indexes".to_sym
+        unless associated_class.respond_to? "_tire_refresh_#{root_class.to_s.underscore}_indexes".to_sym
           if delayed_job
-            associated_class.send(:define_method, "refresh_#{root_class.to_s.underscore}_indexes".to_sym) do |&block|
+            associated_class.send(:define_method, "_tire_refresh_#{root_class.to_s.underscore}_indexes".to_sym) do |&block|
               do_reindex = false
               change_attributes.each do |attribute|
                 if self.send("#{attribute}_changed?".to_sym)
@@ -72,7 +72,7 @@ module Tire
               Tire::Job::ReindexJob.queue(root_class, associated_class, self.id) if do_reindex
             end
           else
-            associated_class.send(:define_method, "refresh_#{root_class.to_s.underscore}_indexes".to_sym) do |&block|
+            associated_class.send(:define_method, "_tire_refresh_#{root_class.to_s.underscore}_indexes".to_sym) do |&block|
               do_reindex = false
               change_attributes.each do |attribute|
                 if self.send("#{attribute}_changed?".to_sym)
@@ -84,7 +84,7 @@ module Tire
               Tire::Job::ReindexJob.new(root_class, associated_class, self.id).perform if do_reindex
             end
           end
-          associated_class.set_callback :update, :around, "refresh_#{root_class.to_s.underscore}_indexes".to_sym
+          associated_class.set_callback :update, :around, "_tire_refresh_#{root_class.to_s.underscore}_indexes".to_sym
         end
       end
     end

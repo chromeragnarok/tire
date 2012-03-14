@@ -129,6 +129,13 @@ module Tire
         AssociatedModel.after_update.clear
       end
 
+      context 'to_indexed_json' do
+        should 'include the associated model as a nested attribute' do
+          indexed_json = "{\"content\":\"Test article\",\"title\":\"Sample Title\",\"associated_model\":{\"first_name\":\"Jack\"}}"
+          assert_equal @model.to_indexed_json, indexed_json
+        end
+      end
+
       context 'without delayed job' do
         setup do
           Tire.configure {
@@ -157,7 +164,7 @@ module Tire
           }
         end
 
-        should "update the index if associated mod  el is updated" do
+        should "update the index if associated model is updated" do
           assert_equal 0, Delayed::Job.count
           @associated_model.first_name = 'Jim'
           @associated_model.save
